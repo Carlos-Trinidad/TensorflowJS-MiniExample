@@ -30,6 +30,9 @@
         <video autoplay="true" id="videoElement">
         </video>
     </div>
+    <div id="response">
+
+    </div>
 
     <button onclick="init()">Init</button>
 
@@ -74,10 +77,51 @@
 
         let init = async () => {
             const model = await tf.loadLayersModel('http://localhost:3000/model/model.json');
-            const example = tf.browser.fromPixels(video);  // for example
-            console.log(example)
-            const prediction = model.predict(example);
+            const example = tf.browser.fromPixels(video);
+            /*
+            Solución:
+            Nuestro modelo espera un input de un tensor de 4 dimensiones. (4D Tensor)
+            tf.browser.fromPixels() nos devuelve un tensor de 3 dimensiones --> [size, size, features]
+            Lo que necesitamos es un tensor de 4 dimensiones cómo esto --> [images.length, size, size, features]
+            */
+            const exampleToPredict = example.reshape([1, 100, 100, 3]) //Hacemos un reshape a la imagen obtenida de la webcam, diciendo que solo tendremos 1 solo valor.
+
+            const prediction = model.predict(exampleToPredict);
+
+            prediction.print() //Utilizamos el metodo print(), ya que prediction es un objeto Tensor, y nosotros queremos ver el array de resultados, ej: [[0,0,0,1]]
+
             console.log(prediction);
+
+            // EXTRA: Mostrar el resultado
+            const class_names = ['Adam Sandler', 'Adele', 'Ashton Kutcher', 'Bella Thorne']
+            const predictionArray = prediction.dataSync(); //Como el objeto prediction es un tensor, nosotros queremos los datos del mismo, para esto utilizamos el metodo .dataSync() el cual nos devuelve el array de valores, ej: [0,0,0,1]
+
+            console.log(predictionArray);
+
+            let response = {
+                predictions: []
+            };
+
+            for (let i = 0; i < predictionArray.length; i++) {
+                let object = {
+                    type: class_names[i],
+                    probability: predictionArray[i]
+                }
+                response.predictions.push(object);
+            }
+
+            console.log(response);
+            let divRespuesta = document.querySelector("#response");
+
+            divRespuesta.innerHTML = `
+            Type1: ${response.predictions[0].type} - Score: ${response.predictions[0].probability}
+            <br>
+            Type2: ${response.predictions[1].type} - Score: ${response.predictions[1].probability}
+            <br>
+            Type3: ${response.predictions[2].type} - Score: ${response.predictions[2].probability}
+            <br>
+            Type4: ${response.predictions[3].type} - Score: ${response.predictions[3].probability}
+            `;
         }
 
 
